@@ -188,7 +188,19 @@ class Webgrind_Config extends Webgrind_MasterConfig {
             $binary = $localBin.'preprocessor';
         }
 
-        if (!file_exists($binary) && is_writable($localBin) && !file_exists($makeFailed)) {
+        $binaryNumBitsFormat = self::$numBitsFormat;
+
+        if (file_exists($binary) && is_executable($binary)) {
+            $out = null;
+            exec($binary, $out);
+
+            $binaryNumBitsFormat = substr($out[0], 16, 2);
+        }
+
+        $compile = !file_exists($binary) || $binaryNumBitsFormat != self::$numBitsFormat;
+        $compileRequirements = is_writable($localBin) && !file_exists($makeFailed);
+
+        if ($compile && $compileRequirements) {
             if (PHP_OS == 'WINNT') {
                 $success = static::compileBinaryPreprocessorWindows();
             } else {
@@ -207,7 +219,8 @@ class Webgrind_Config extends Webgrind_MasterConfig {
         if (is_executable($make)) {
             $cwd = getcwd();
             chdir(__DIR__);
-            exec($make, $output, $retval);
+            exec($make . ' clean');
+            exec($make . ' NUM_BITS_FORMAT=' . self::$numBitsFormat, $output, $retval);
             chdir($cwd);
             return $retval == 0;
         }
@@ -215,6 +228,7 @@ class Webgrind_Config extends Webgrind_MasterConfig {
     }
 
     static function compileBinaryPreprocessorWindows() {
+        // FIXME: Add NUM_BITS_FORMAT
         if (getenv('VSAPPIDDIR')) {
             $cwd = getcwd();
             chdir(__DIR__);

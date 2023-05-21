@@ -381,7 +381,9 @@ private:
 
 int main(int argc, char* argv[])
 {
-    if (argc < 3) {
+    if (argc == 1) {
+        std::cout << "NUM_BITS_FORMAT=" << NUM_BITS_FORMAT << std::endl;
+    } else if (argc < 3) {
         return 1;
     }
     std::vector<std::string> proxyFunctions;
