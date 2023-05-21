@@ -68,6 +68,10 @@ h2 {
 	display: none;
 }
 
+#function_graph {
+	display: none;
+}
+
 #runtime_sum,
 #invocation_sum,
 #shown_sum {

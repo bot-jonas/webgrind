@@ -143,6 +143,12 @@ try {
         break;
 
         case 'function_graph':
+            if(!Webgrind_Config::$enableFunctionGraph) {
+                $message = 'This functionality is not enabled.';
+                require 'templates/fileviewer.phtml';
+                break;
+            }
+
             $dataFile = get('dataFile');
             $showFraction = 100 - intval(get('showFraction') * 100);
             if ($dataFile == '0') {

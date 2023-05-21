@@ -65,6 +65,10 @@
 					$("#hello_message").hide();
 					$("#trace_view").show();
 
+					<?php if(Webgrind_Config::$enableFunctionGraph): ?>
+					$("#function_graph").show();
+					<?php endif; ?>
+
 					$("#function_table").trigger('update');
 					<?php
 					$sortCol = 0;
@@ -430,7 +434,7 @@
 			<div style="float:right;">
 				<div id="breakdown" style="margin-bottom:5px;width:320px;height:20px"></div>
 				<span id="invocation_sum"></span> different functions called in <span id="runtime_sum"></span> milliseconds (<span id="runs"></span> runs, <span id="shown_sum"></span> shown)
-				<div><input type="button" name="graph" value="Show Call Graph" onclick="showCallGraph()"></div>
+				<div id="function_graph"><input type="button" name="graph" value="Show Call Graph" onclick="showCallGraph()"></div>
 			</div>
 			<div style="clear:both"></div>
 			Filter: <input type="text" style="width:150px" id="callfilter"> (regex too)

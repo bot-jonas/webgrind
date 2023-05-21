@@ -29,6 +29,8 @@ class Webgrind_Config extends Webgrind_MasterConfig {
      */
     static $preprocessedSuffix = '.webgrind';
 
+    static $enableFunctionGraph = true;
+
     /**
      * Image type of graph to output
      * Can be png or svg
