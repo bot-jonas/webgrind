@@ -227,7 +227,7 @@ class Webgrind_Reader
      * Formats $cost using the format in $this->costFormat or optionally the format given as input
      *
      * @param int $cost Cost
-     * @param string $format 'percent', 'msec' or 'usec'
+     * @param string $format 'percent', 'msec', 'usec' or 'raw'
      * @return int Formatted cost
      */
     function formatCost($cost, $format=null) {
@@ -238,6 +238,10 @@ class Webgrind_Reader
             $total = $this->getHeader('summary');
             $result = ($total==0) ? 0 : ($cost*100)/$total;
             return number_format($result, 2, '.', '');
+        }
+
+        if($format == 'raw') {
+            return round($cost);
         }
 
         // Check for 10-nanosecond resolution (Xdebug 3).
