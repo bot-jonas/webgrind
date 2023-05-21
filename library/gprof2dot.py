@@ -3248,6 +3248,12 @@ def main():
         '-p', '--path', action="append",
         type="string", dest="filter_paths",
         help="Filter all modules not in a specified path")
+    # add option for gzip input
+    optparser.add_option(
+        '--gzip',
+        action="store_true",
+        dest="is_gzip_compressed", default=False,
+        help="decompress gzip input")
     (options, args) = optparser.parse_args(sys.argv[1:])
 
     if len(args) > 1 and options.format != 'pstats':
@@ -3270,12 +3276,16 @@ def main():
         optparser.error('invalid format \'%s\'' % options.format)
 
     if Format.stdinInput:
+        kwargs = {'encoding': 'UTF-8'} if PYTHON_3 else {}
+
+        if options.is_gzip_compressed:
+            import gzip
+
         if not args:
-            fp = sys.stdin
-        elif PYTHON_3:
-            fp = open(args[0], 'rt', encoding='UTF-8')
+            fp = gzip.open(sys.stdin.buffer, 'rt', **kwargs) if options.is_gzip_compressed else sys.stdin
         else:
-            fp = open(args[0], 'rt')
+            fp = gzip.open(args[0], 'rt', **kwargs) if options.is_gzip_compressed else open(args[0], 'rt', **kwargs)
+
         parser = Format(fp)
     elif Format.multipleInput:
         if not args:

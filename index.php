@@ -159,8 +159,23 @@ try {
                         $item = '"'.$item.'"';
                     }
                 }
+
+                $dataFilePath = Webgrind_Config::xdebugOutputDir().$dataFile;
+                $gzip = '';
+
+                if(is_readable($dataFilePath)) {
+                    $fp = fopen($dataFilePath, 'rb');
+                    $magicNumber = fread($fp, 2);
+                    fclose($fp);
+
+                    if(bin2hex($magicNumber) == '1f8b') {
+                        $gzip = ' --gzip';
+                    }
+                }
+
                 shell_exec(Webgrind_Config::$pythonExecutable.' library/gprof2dot.py -n '.$showFraction
-                           .' -f callgrind '.escapeshellarg(Webgrind_Config::xdebugOutputDir().$dataFile).' | '
+                           .$gzip
+                           .' -f callgrind '.escapeshellarg($dataFilePath).' | '
                            .Webgrind_Config::$dotExecutable.' -T'.Webgrind_Config::$graphImageType.' -o '.escapeshellarg($filename));
             }
 
