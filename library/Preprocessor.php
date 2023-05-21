@@ -16,18 +16,20 @@ class Webgrind_Preprocessor
     /**
      * Fileformat version. Embedded in the output for parsers to use.
      */
-    const FILE_FORMAT_VERSION = 7;
+    const FILE_FORMAT_VERSION = 8;
 
     /**
      * Binary number format used.
      * @see http://php.net/pack
      */
-    const NR_FORMAT = 'V';
+    static $NR_FORMAT;
+    const NR_FORMATS = [32 => 'V', 64 => 'P'];
 
     /**
      * Size, in bytes, of the above number format
      */
-    const NR_SIZE = 4;
+    static $NR_SIZE;
+    const NR_SIZES = [32 => 4, 64 => 8];
 
     /**
      * String name of main function
@@ -42,8 +44,12 @@ class Webgrind_Preprocessor
      * @param string $outFile File to write preprocessed data to
      * @return void
      */
-    static function parse($inFile, $outFile)
+    static function parse($numBitsFormat, $inFile, $outFile)
     {
+        self::$NR_FORMAT = self::NR_FORMATS[$numBitsFormat];
+        self::$NR_SIZE = self::NR_SIZES[$numBitsFormat];
+
+
         // If possible, use the binary preprocessor
         if (self::binaryParse($inFile, $outFile)) {
             return;
@@ -163,22 +169,22 @@ class Webgrind_Preprocessor
 
         // Write output
         $functionCount = sizeof($functions);
-        fwrite($out, pack(self::NR_FORMAT.'*', self::FILE_FORMAT_VERSION, 0, $functionCount));
+        fwrite($out, pack(self::$NR_FORMAT.'*', self::FILE_FORMAT_VERSION, 0, $functionCount));
         // Make room for function addresses
-        fseek($out, self::NR_SIZE*$functionCount, SEEK_CUR);
+        fseek($out, self::$NR_SIZE*$functionCount, SEEK_CUR);
         $functionAddresses = array();
         foreach ($functions as $index=>$function) {
             $functionAddresses[] = ftell($out);
             $calledFromCount = sizeof($function['calledFromInformation']);
             $subCallCount = sizeof($function['subCallInformation']);
-            fwrite($out, pack(self::NR_FORMAT.'*', $function['line'], $function['summedSelfCost'], $function['summedInclusiveCost'], $function['invocationCount'], $calledFromCount, $subCallCount));
+            fwrite($out, pack(self::$NR_FORMAT.'*', $function['line'], $function['summedSelfCost'], $function['summedInclusiveCost'], $function['invocationCount'], $calledFromCount, $subCallCount));
             // Write called from information
             foreach ((array)$function['calledFromInformation'] as $call) {
-                fwrite($out, pack(self::NR_FORMAT.'*', $call['functionNr'], $call['line'], $call['callCount'], $call['summedCallCost']));
+                fwrite($out, pack(self::$NR_FORMAT.'*', $call['functionNr'], $call['line'], $call['callCount'], $call['summedCallCost']));
             }
             // Write sub call information
             foreach ((array)$function['subCallInformation'] as $call) {
-                fwrite($out, pack(self::NR_FORMAT.'*', $call['functionNr'], $call['line'], $call['callCount'], $call['summedCallCost']));
+                fwrite($out, pack(self::$NR_FORMAT.'*', $call['functionNr'], $call['line'], $call['callCount'], $call['summedCallCost']));
             }
 
             fwrite($out, $function['filename']."\n".$functionNames[$index]."\n");
@@ -190,13 +196,13 @@ class Webgrind_Preprocessor
         }
 
         // Write addresses
-        fseek($out, self::NR_SIZE, SEEK_SET);
-        fwrite($out, pack(self::NR_FORMAT, $headersPos));
+        fseek($out, self::$NR_SIZE, SEEK_SET);
+        fwrite($out, pack(self::$NR_FORMAT, $headersPos));
         // Skip function count
-        fseek($out, self::NR_SIZE, SEEK_CUR);
+        fseek($out, self::$NR_SIZE, SEEK_CUR);
         // Write function addresses
         foreach ($functionAddresses as $address) {
-            fwrite($out, pack(self::NR_FORMAT, $address));
+            fwrite($out, pack(self::$NR_FORMAT, $address));
         }
 
         gzclose($in);

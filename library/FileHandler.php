@@ -162,11 +162,11 @@ class Webgrind_FileHandler
     public function getTraceReader($file, $costFormat) {
         $prepFile = Webgrind_Config::storageDir().$file.Webgrind_Config::$preprocessedSuffix;
         try {
-            $r = new Webgrind_Reader($prepFile, $costFormat);
+            $r = new Webgrind_Reader(Webgrind_Config::$numBitsFormat, $prepFile, $costFormat);
         } catch (Exception $e) {
             // Preprocessed file does not exist or other error
-            Webgrind_Preprocessor::parse(Webgrind_Config::xdebugOutputDir().$file, $prepFile);
-            $r = new Webgrind_Reader($prepFile, $costFormat);
+            Webgrind_Preprocessor::parse(Webgrind_Config::$numBitsFormat, Webgrind_Config::xdebugOutputDir().$file, $prepFile);
+            $r = new Webgrind_Reader(Webgrind_Config::$numBitsFormat, $prepFile, $costFormat);
         }
         return $r;
     }

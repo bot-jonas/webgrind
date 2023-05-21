@@ -7,6 +7,11 @@
  */
 class Webgrind_Config extends Webgrind_MasterConfig {
     /**
+     * Number of bits for number format
+     */
+    static $numBitsFormat = 32;
+
+    /**
      * Automatically check if a newer version of webgrind is available for download
      */
     static $checkVersion = true;

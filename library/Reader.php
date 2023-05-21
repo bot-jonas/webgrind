@@ -10,18 +10,20 @@ class Webgrind_Reader
     /**
      * File format version that this reader understands
      */
-    const FILE_FORMAT_VERSION = 7;
+    const FILE_FORMAT_VERSION = 8;
 
     /**
      * Binary number format used.
      * @see http://php.net/pack
      */
-    const NR_FORMAT = 'V';
+    static $NR_FORMAT;
+    const NR_FORMATS = [32 => 'V', 64 => 'P'];
 
     /**
      * Size, in bytes, of the above number format
      */
-    const NR_SIZE = 4;
+    static $NR_SIZE;
+    const NR_SIZES = [32 => 4, 64 => 8];
 
     /**
      * Length of a call information block
@@ -67,7 +69,10 @@ class Webgrind_Reader
      * @param string Data file to read
      * @param string Format to return costs in
      */
-    function __construct($dataFile, $costFormat) {
+    function __construct($numBitsFormat, $dataFile, $costFormat) {
+        self::$NR_FORMAT = self::NR_FORMATS[$numBitsFormat];
+        self::$NR_SIZE = self::NR_SIZES[$numBitsFormat];
+
         $this->fp = @fopen($dataFile,'rb');
         if (!$this->fp)
             throw new Exception('Error opening file!');
@@ -112,7 +117,7 @@ class Webgrind_Reader
 
         list($line, $summedSelfCost, $summedInclusiveCost, $invocationCount, $calledFromCount, $subCallCount) = $this->read(self::FUNCTIONINFORMATION_LENGTH);
 
-        $this->seek(self::NR_SIZE*self::CALLINFORMATION_LENGTH*($calledFromCount+$subCallCount), SEEK_CUR);
+        $this->seek(self::$NR_SIZE*self::CALLINFORMATION_LENGTH*($calledFromCount+$subCallCount), SEEK_CUR);
         $file = $this->readLine();
         $function = $this->readLine();
 
@@ -143,7 +148,7 @@ class Webgrind_Reader
     function getCalledFromInfo($functionNr, $calledFromNr) {
         $this->seek(
             $this->functionPos[$functionNr]
-            + self::NR_SIZE
+            + self::$NR_SIZE
             * (self::CALLINFORMATION_LENGTH * $calledFromNr + self::FUNCTIONINFORMATION_LENGTH)
             );
 
@@ -170,9 +175,9 @@ class Webgrind_Reader
      */
     function getSubCallInfo($functionNr, $subCallNr) {
         // Sub call count is the second last number in the FUNCTION_INFORMATION block
-        $this->seek($this->functionPos[$functionNr] + self::NR_SIZE * (self::FUNCTIONINFORMATION_LENGTH - 2));
+        $this->seek($this->functionPos[$functionNr] + self::$NR_SIZE * (self::FUNCTIONINFORMATION_LENGTH - 2));
         $calledFromInfoCount = $this->read();
-        $this->seek( ( ($calledFromInfoCount+$subCallNr) * self::CALLINFORMATION_LENGTH + 1 ) * self::NR_SIZE,SEEK_CUR);
+        $this->seek( ( ($calledFromInfoCount+$subCallNr) * self::CALLINFORMATION_LENGTH + 1 ) * self::$NR_SIZE,SEEK_CUR);
         $data = $this->read(self::CALLINFORMATION_LENGTH);
 
         $result = array(
@@ -252,7 +257,7 @@ class Webgrind_Reader
     }
 
     private function read($numbers=1) {
-        $values = unpack(self::NR_FORMAT.$numbers,fread($this->fp,self::NR_SIZE*$numbers));
+        $values = unpack(self::$NR_FORMAT.$numbers,fread($this->fp,self::$NR_SIZE*$numbers));
         if ($numbers==1)
             return $values[1];
         else

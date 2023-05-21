@@ -1,6 +1,7 @@
 CXX = g++
 SRCS = library/preprocessor.cpp
 OUT = bin/preprocessor
+NUM_BITS_FORMAT = 32
 
 
 all: $(OUT)
@@ -15,6 +16,6 @@ clean:
 	rm -f $(OUT)
 
 $(OUT): $(SRCS)
-	$(CXX) -o $(OUT) -O2 -s $(SRCS) -lz -DWITH_ZLIB
+	$(CXX) -o $(OUT) -O2 -s $(SRCS) -lz -DWITH_ZLIB -D NUM_BITS_FORMAT=$(NUM_BITS_FORMAT)
 
 .PHONY: all help clean

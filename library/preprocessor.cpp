@@ -30,14 +30,29 @@
 /**
  * Fileformat version. Embedded in the output for parsers to use.
  */
-#define FILE_FORMAT_VERSION 7
+#define FILE_FORMAT_VERSION 8
+
+#ifndef NUM_BITS_FORMAT
+#define NUM_BITS_FORMAT 32
+#endif
 
 // NR_FORMAT = 'V' - unsigned long 32 bit little endian
+// NR_FORMAT = 'P' - unsigned long 64 bit little endian
 
 /**
  * Size, in bytes, of the above number format
+ * Byte swap function
  */
+
+#if NUM_BITS_FORMAT == 32
+#define NR_FORMAT uint32_t
+#define BYTE_SWAP_FUNC __builtin_bswap32
 #define NR_SIZE 4
+#elif NUM_BITS_FORMAT == 64
+#define NR_FORMAT uint64_t
+#define BYTE_SWAP_FUNC __builtin_bswap64
+#define NR_SIZE 8
+#endif
 
 /**
  * String name of main function
@@ -46,13 +61,13 @@
 
 struct ProxyData
 {
-    ProxyData(int _calledIndex, int _lnr, int _cost) :
+    ProxyData(int _calledIndex, int _lnr, NR_FORMAT _cost) :
         calledIndex(_calledIndex), lnr(_lnr), cost(_cost)
     {}
 
     int calledIndex;
     int lnr;
-    int cost;
+    NR_FORMAT cost;
 };
 
 struct CallData
@@ -64,7 +79,7 @@ struct CallData
     int functionNr;
     int line;
     int callCount;
-    int summedCallCost;
+    NR_FORMAT summedCallCost;
 };
 
 inline CallData& insertGetOrderedMap(int functionNr, int line, std::map<int, size_t>& keyMap, std::vector<CallData>& data)
@@ -81,7 +96,7 @@ inline CallData& insertGetOrderedMap(int functionNr, int line, std::map<int, siz
 
 struct FunctionData
 {
-    FunctionData(const std::string& _name, std::string& _filename, int _line, int _cost) :
+    FunctionData(const std::string& _name, std::string& _filename, int _line, NR_FORMAT _cost) :
         name(_name),
         filename(_filename),
         line(_line),
@@ -94,8 +109,8 @@ struct FunctionData
     std::string filename;
     int line;
     int invocationCount;
-    int summedSelfCost;
-    int summedInclusiveCost;
+    NR_FORMAT summedSelfCost;
+    NR_FORMAT summedInclusiveCost;
     std::vector<CallData> calledFromInformation;
     std::vector<CallData> subCallInformation;
 
@@ -142,7 +157,7 @@ public:
         std::string line;
         std::string buffer;
         int lnr;
-        int cost;
+        NR_FORMAT cost;
         int funcIndex;
 
         // Read information into memory
@@ -241,16 +256,16 @@ public:
         in.close();
 
         // Write output
-        std::vector<uint32_t> writeBuff;
+        std::vector<NR_FORMAT> writeBuff;
         writeBuff.push_back(FILE_FORMAT_VERSION);
         writeBuff.push_back(0);
         writeBuff.push_back(functions.size());
         writeBuffer(out, writeBuff);
         // Make room for function addresses
         out.seekp(NR_SIZE * functions.size(), std::ios::cur);
-        std::vector<uint32_t> functionAddresses;
+        std::vector<NR_FORMAT> functionAddresses;
         for (size_t index = 0; index < functions.size(); ++index) {
-            functionAddresses.push_back((uint32_t)out.tellp());
+            functionAddresses.push_back((NR_FORMAT)out.tellp());
             FunctionData& function = functions[index];
             writeBuff.push_back(function.line);
             writeBuff.push_back(function.summedSelfCost);
@@ -339,27 +354,21 @@ private:
         return id;
     }
 
-    void writeBuffer(std::ostream& out, std::vector<uint32_t>& buffer)
+    void writeBuffer(std::ostream& out, std::vector<NR_FORMAT>& buffer)
     {
-        for (std::vector<uint32_t>::iterator bItr = buffer.begin(); bItr != buffer.end(); ++bItr) {
-            *bItr = toLittleEndian32(*bItr);
+        for (std::vector<NR_FORMAT>::iterator bItr = buffer.begin(); bItr != buffer.end(); ++bItr) {
+            *bItr = toLittleEndian(*bItr);
         }
-        out.write(reinterpret_cast<const char*>(&buffer.front()), sizeof(uint32_t) * buffer.size());
+        out.write(reinterpret_cast<const char*>(&buffer.front()), sizeof(NR_FORMAT) * buffer.size());
         buffer.clear();
     }
 
-    inline uint32_t toLittleEndian32(uint32_t value)
+    inline NR_FORMAT toLittleEndian(NR_FORMAT value)
     {
 #if defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
         return value;
 #else
-        value = htonl(value);
-        uint32_t result = 0;
-        result |= (value & 0x000000FF) << 24;
-        result |= (value & 0x0000FF00) <<  8;
-        result |= (value & 0x00FF0000) >>  8;
-        result |= (value & 0xFF000000) >> 24;
-        return result;
+        return BYTE_SWAP_FUNC(value);
 #endif
     }
 
